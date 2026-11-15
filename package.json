@@ -1,0 +1,24 @@
+{
+  "name": "pi-cancel-current-shell",
+  "version": "0.1.0",
+  "description": "Cancel the active Pi bash or PowerShell tool execution without aborting the agent turn.",
+  "license": "MIT",
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "shell",
+    "cancellation"
+  ],
+  "type": "module",
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

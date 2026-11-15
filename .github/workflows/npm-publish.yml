@@ -1,15 +1,17 @@
-# Publishes the package to npm when a GitHub release is published.
+# Creates the GitHub release and publishes the package to npm.
+# Trigger: push of a version tag (e.g. v1.0.0).
 # Uses npm "trusted publishing" (OIDC): no npm token or secret is needed.
 # One-time setup: add this repo + workflow file as a Trusted Publisher on npmjs.com.
 
-name: Publish to npm
+name: Create release & publish to npm
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'v*'
 
 permissions:
-  contents: read
+  contents: write # lets the workflow create the GitHub release
   id-token: write # lets GitHub prove to npm who is publishing
 
 jobs:
@@ -24,13 +26,26 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org/
 
-      # Fails early if the release tag (e.g. v1.0.1) doesn't match package.json's version.
+      # Fails early if the pushed tag (e.g. v1.0.1) doesn't match package.json's version.
       - name: Check tag matches package version
+        env:
+          TAG: ${{ github.ref_name }}
         run: |
           VERSION="v$(node -p "require('./package.json').version")"
-          if [ "$VERSION" != "${{ github.event.release.tag_name }}" ]; then
-            echo "Release tag ${{ github.event.release.tag_name }} does not match package.json version $VERSION"
+          if [ "$VERSION" != "$TAG" ]; then
+            echo "Release tag $TAG does not match package.json version $VERSION"
             exit 1
           fi
+
+      # Create the GitHub release for this tag (idempotent enough for retries).
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --notes "pi-cancel-current-shell $TAG" \
+            --verify-tag
 
       - run: npm publish --access public

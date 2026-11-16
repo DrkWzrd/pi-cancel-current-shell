@@ -68,7 +68,7 @@ function cancellationMessage(toolName: string, partialOutput: string): string {
   const output = partialOutput.trim();
 
   return output
-    ? `${header} Output produced before cancellation:\n\n${partialOutput}\n\nInspect the output above and continue.`
+    ? `${partialOutput}\n\n ${header}`
     : `${header} No output was produced before cancellation. Continue.`;
 }
 

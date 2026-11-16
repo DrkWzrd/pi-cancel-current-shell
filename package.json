@@ -1,6 +1,6 @@
 {
   "name": "pi-cancel-current-shell",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Cancel the active Pi bash or PowerShell tool execution without aborting the agent turn.",
   "license": "MIT",
   "author": "DrkWzrd",

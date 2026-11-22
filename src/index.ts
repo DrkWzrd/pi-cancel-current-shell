@@ -70,19 +70,15 @@ function cancellationMessage(
   partialOutput: string,
   userReason?: string,
 ): string {
-  const header = `The user cancelled the ${toolName} script execution.`;
+  const reason = userReason?.trim();
+  const header = reason
+    ? `The user cancelled the ${toolName} script execution because: ${reason}.`
+    : `The user cancelled the ${toolName} script execution.`;
   const output = partialOutput.trim();
-  const user = userReason?.trim();
 
-  let text = output
+  return output
     ? `${output}\n\n ${header}`
     : `${header} No output was produced before cancellation. Continue.`;
-
-  if (user) {
-    text += `\n\nThe user has given this reason: ${user}`;
-  }
-
-  return text;
 }
 
 function cancellationResult(

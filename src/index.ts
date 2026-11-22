@@ -13,6 +13,8 @@ type ActiveExecution = {
   toolName: "bash" | "powershell";
   controller: AbortController;
   startedAt: number;
+  /** Optional user-supplied reason attached by /cancel-current-shell, included in the cancellation result. */
+  reason?: string;
 };
 
 /**
@@ -63,21 +65,36 @@ function extractText(result: any): string {
 }
 
 /** Builds the message the model sees when the user cancels a shell command. */
-function cancellationMessage(toolName: string, partialOutput: string): string {
+function cancellationMessage(
+  toolName: string,
+  partialOutput: string,
+  userReason?: string,
+): string {
   const header = `The user cancelled the ${toolName} script execution.`;
   const output = partialOutput.trim();
+  const user = userReason?.trim();
 
-  return output
-    ? `${partialOutput}\n\n ${header}`
+  let text = output
+    ? `${output}\n\n ${header}`
     : `${header} No output was produced before cancellation. Continue.`;
+
+  if (user) {
+    text += `\n\nThe user has given this reason: ${user}`;
+  }
+
+  return text;
 }
 
-function cancellationResult(toolName: string, partialOutput: string) {
+function cancellationResult(
+  toolName: string,
+  partialOutput: string,
+  userReason?: string,
+) {
   return {
     content: [
       {
         type: "text" as const,
-        text: cancellationMessage(toolName, partialOutput),
+        text: cancellationMessage(toolName, partialOutput, userReason),
       },
     ],
     details: {},
@@ -153,6 +170,7 @@ export default function (pi: ExtensionAPI) {
             return cancellationResult(
               toolName,
               extractText(result) || lastPartial,
+              active.get(toolCallId)?.reason,
             );
           }
 
@@ -167,7 +185,11 @@ export default function (pi: ExtensionAPI) {
               error instanceof Error && !isGenericAbortMessage(error.message)
                 ? error.message
                 : "";
-            return cancellationResult(toolName, lastPartial || fallback);
+            return cancellationResult(
+              toolName,
+              lastPartial || fallback,
+              active.get(toolCallId)?.reason,
+            );
           }
           throw error;
         } finally {
@@ -190,8 +212,8 @@ export default function (pi: ExtensionAPI) {
 
   pi.registerCommand("cancel-current-shell", {
     description:
-      "Interrupt the most recently started bash or PowerShell command without cancelling the agent turn",
-    handler: async (_args, ctx) => {
+      "Interrupt the most recently started bash or PowerShell command without cancelling the agent turn. Optional argument: a reason included in the cancellation result the agent sees.",
+    handler: async (args, ctx) => {
       const current = [...active.entries()].sort(
         (a, b) => b[1].startedAt - a[1].startedAt,
       )[0];
@@ -202,6 +224,10 @@ export default function (pi: ExtensionAPI) {
       }
 
       const [toolCallId, execution] = current;
+
+      const reason = args.trim();
+      if (reason) execution.reason = reason;
+
       execution.controller.abort();
 
       ctx.ui.notify(

@@ -46,18 +46,24 @@ While Pi is executing a shell tool, enter:
 
 ```text
 /cancel-current-shell
+/cancel-current-shell <optional reason>
 ```
 
 The extension selects the most recently started active `bash` or `powershell`
 execution and aborts its tool-level signal. It does **not** call `ctx.abort()`.
 
+The optional reason is included in the cancellation tool result the model
+sees, so the agent receives it in the same turn it inspects the partial
+output.
+
 Expected flow:
 
 1. Pi starts a shell tool call.
-2. You invoke `/cancel-current-shell`.
+2. You invoke `/cancel-current-shell` (optionally with a reason).
 3. The extension aborts that shell tool's signal.
 4. Pi's shell implementation performs its platform-specific process cleanup.
-5. The tool returns cancellation information to the model.
+5. The tool returns cancellation information to the model, including your
+   reason if you provided one.
 6. The agent continues its existing turn.
 
 ## Shell and platform behavior
